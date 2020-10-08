@@ -1,12 +1,14 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
+//#include <ESP8266WiFi.h>
+//#include <ESP8266HTTPClient.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <ezTime.h>
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 
 //WiFi Credentials
-String ssid = "HelioKraft";
-String password = "64250897";
+const char* ssid = "HelioKraft";
+const char* password = "64250897";
 
 //Server URL
 //String URL = "http://192.168.43.6:5000/postjson";
@@ -16,14 +18,14 @@ String URL = "http://ems.elliotsystemsonline.com:3008/api/DAL/RawData";
 String readString;
 
 //Software Serial
-SoftwareSerial espSerial(13,15); // RX, TX
+//SoftwareSerial espSerial(13,15); // RX, TX
 
 //NTP Timezone
 //Timezone myTZ;
  
 void setup() {
   Serial.begin(9600);         //Serial connection
-  espSerial.begin(9600);
+  //espSerial.begin(9600);
   WiFi.begin(ssid, password);   //WiFi connection
   while (WiFi.status() != WL_CONNECTED) {  
     //Wait for the WiFI connection completion
@@ -32,7 +34,7 @@ void setup() {
   }
   Serial.println("Sync for NTP Connection");
   waitForSync(); //For NTP synchronization
-  espSerial.print("A");
+  //espSerial.print("A");
   //myTZ.setLocation("in");
 }
 int count = 0; 
@@ -41,14 +43,11 @@ int batchCount = 1;
 void loop() {
   if (WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
     if (Serial.available()){
-      //StaticJsonBuffer<600> JSONbuffer;   //Declaring static JSON buffer
-      //JsonObject& JSONencoder = JSONbuffer.createObject(); 
       StaticJsonDocument<600> doc;   //Declaring static JSON buffer
-      //JSONencoder["bot_id"] = "EM_001";
-      //JSONencoder["created_at"] = UTC.dateTime(ISO8601);
-      //JsonArray& values = JSONencoder.createNestedArray("regsiters"); //JSON array
+      //JsonObject& JSONencoder = JSONbuffer.createObject(); 
       doc["bot_id"] = "EM_001";
       doc["created_at"] = UTC.dateTime(ISO8601);
+      //JsonArray& values = JSONencoder.createNestedArray("regsiters"); //JSON array
       JsonArray values = doc.createNestedArray("regsiters");
       while (Serial.available()) {
         delay(3);  //delay to allow buffer to fill
@@ -62,9 +61,9 @@ void loop() {
               continue;  
           }else if(c==';'){
               char JSONmessageBuffer[600];
-              //JSONencoder["batch"] = batchCount;
-              //JSONencoder.prettyPrintTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
+              doc["created_at"] = UTC.dateTime(ISO8601);
               doc["batch"] = batchCount;
+              //JSONencoder.prettyPrintTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
               serializeJsonPretty(doc, JSONmessageBuffer);
               Serial.println(JSONmessageBuffer);
               readString = "";
@@ -78,10 +77,10 @@ void loop() {
               Serial.println(payload);    //Print request response payload
               http.end();  //Close connection
               //JsonArray& values = JSONencoder.createNestedArray("regsiters");
-              // Clearing the Array
               for (JsonArray::iterator it=values.begin(); it!=values.end(); ++it) {
                    values.remove(it);
               }
+
           }
           else {
           readString += c; //makes the string readString
@@ -90,6 +89,7 @@ void loop() {
       }
       if (readString.length() >0){
         Serial.println(readString);
+        doc["created_at"] = UTC.dateTime(ISO8601);
         doc["batch"] = batchCount;
         values.add(readString);
         char JSONmessageBuffer[600];
@@ -117,7 +117,7 @@ void loop() {
       // reclaim leaked strings
       doc.garbageCollect();
     }
-    espSerial.print("A");
+    //espSerial.print("A");
     delay(1000);
   } else { 
     Serial.println("Error in WiFi connection"); 
