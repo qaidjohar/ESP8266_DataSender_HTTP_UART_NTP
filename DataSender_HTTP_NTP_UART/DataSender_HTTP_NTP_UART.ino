@@ -2,23 +2,28 @@
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 #include <ezTime.h>
+#include <SoftwareSerial.h>
 
 //WiFi Credentials
-String ssid = "QJ";
-String password = "1234567@123";
+String ssid = "HelioKraft";
+String password = "64250897";
 
 //Server URL
 //String URL = "http://192.168.43.6:5000/postjson";
-String URL = "http://testdomain.elliotsystemsonline.com:3001/api/DAL/RawData";
+String URL = "http://ems.elliotsystemsonline.com:3008/api/DAL/RawData";
 
 //Global Variables
 String readString;
 
+//Software Serial
+SoftwareSerial espSerial(13,15); // RX, TX
+
 //NTP Timezone
-Timezone myTZ;
+//Timezone myTZ;
  
 void setup() {
-  Serial.begin(115200);         //Serial connection
+  Serial.begin(9600);         //Serial connection
+  espSerial.begin(9600);
   WiFi.begin(ssid, password);   //WiFi connection
   while (WiFi.status() != WL_CONNECTED) {  
     //Wait for the WiFI connection completion
@@ -27,17 +32,20 @@ void setup() {
   }
   Serial.println("Sync for NTP Connection");
   waitForSync(); //For NTP synchronization
-  myTZ.setLocation("in");
+  espSerial.print("A");
+  //myTZ.setLocation("in");
 }
- 
+int count = 0; 
+int batchCount = 1;
 void loop() {
   if (WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
     if (Serial.available()){
       StaticJsonBuffer<600> JSONbuffer;   //Declaring static JSON buffer
       JsonObject& JSONencoder = JSONbuffer.createObject(); 
-      JSONencoder["sensor_id"] = "EM_001";
-      JSONencoder["created_at"] = myTZ.dateTime(ISO8601);
-      JsonArray& values = JSONencoder.createNestedArray("values"); //JSON array
+      JSONencoder["bot_id"] = "EM_001";
+      JSONencoder["created_at"] = UTC.dateTime(ISO8601);
+      JSONencoder["batch"] = batchCount;
+      JsonArray& values = JSONencoder.createNestedArray("regsiters"); //JSON array
       while (Serial.available()) {
         delay(3);  //delay to allow buffer to fill
         if (Serial.available() >0) {
@@ -70,13 +78,19 @@ void loop() {
         Serial.println(httpCode);   //Print HTTP return code
         Serial.println(payload);    //Print request response payload
         http.end();  //Close connection
+        batchCount++;
+        if(batchCount == 4){
+            batchCount=1;
+        }
       }
       //if (Serial.available()) {
       //  Serial.write(Serial.read());
       //}
     }
+    espSerial.print("A");
+    delay(1000);
   } else { 
     Serial.println("Error in WiFi connection"); 
     delay(5000);  //Send a request every 30 seconds
-  }
+  } 
 }
