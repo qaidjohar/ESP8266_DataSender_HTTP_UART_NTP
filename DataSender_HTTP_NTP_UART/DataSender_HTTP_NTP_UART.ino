@@ -37,6 +37,7 @@ void setup() {
 }
 int count = 0; 
 int batchCount = 1;
+
 void loop() {
   if (WiFi.status() == WL_CONNECTED) { //Check WiFi connection status
     if (Serial.available()){
@@ -44,7 +45,6 @@ void loop() {
       JsonObject& JSONencoder = JSONbuffer.createObject(); 
       JSONencoder["bot_id"] = "EM_001";
       JSONencoder["created_at"] = UTC.dateTime(ISO8601);
-      JSONencoder["batch"] = batchCount;
       JsonArray& values = JSONencoder.createNestedArray("regsiters"); //JSON array
       while (Serial.available()) {
         delay(3);  //delay to allow buffer to fill
@@ -56,6 +56,21 @@ void loop() {
               readString = "";
           } else if(c=='\n' || c=='\r'){
               continue;  
+          }else if(c==';'){
+              char JSONmessageBuffer[600];
+              JSONencoder.prettyPrintTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
+              Serial.println(JSONmessageBuffer);
+              readString = "";
+              JSONencoder["batch"] = batchCount;
+              batchCount++;
+              HTTPClient http;    //Declare object of class HTTPClient
+              http.begin(URL);      //Specify request destination
+              http.addHeader("Content-Type", "application/json");  //Specify content-type header
+              int httpCode = http.POST(JSONmessageBuffer);   //Send the request
+              String payload = http.getString();  //Get the response payload
+              Serial.println(httpCode);   //Print HTTP return code
+              Serial.println(payload);    //Print request response payload
+              http.end();  //Close connection
           }
           else {
           readString += c; //makes the string readString
@@ -69,7 +84,6 @@ void loop() {
         JSONencoder.prettyPrintTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
         Serial.println(JSONmessageBuffer);
         readString = "";
-
         HTTPClient http;    //Declare object of class HTTPClient
         http.begin(URL);      //Specify request destination
         http.addHeader("Content-Type", "application/json");  //Specify content-type header
@@ -78,10 +92,11 @@ void loop() {
         Serial.println(httpCode);   //Print HTTP return code
         Serial.println(payload);    //Print request response payload
         http.end();  //Close connection
-        batchCount++;
-        if(batchCount == 4){
-            batchCount=1;
-        }
+        //batchCount++;
+        //if(batchCount == 4){
+        //    batchCount=1;
+        //}
+        batchCount=1;
       }
       //if (Serial.available()) {
       //  Serial.write(Serial.read());
