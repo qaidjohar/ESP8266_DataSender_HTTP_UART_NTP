@@ -58,10 +58,10 @@ void loop() {
               continue;  
           }else if(c==';'){
               char JSONmessageBuffer[600];
+              JSONencoder["batch"] = batchCount;
               JSONencoder.prettyPrintTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
               Serial.println(JSONmessageBuffer);
               readString = "";
-              JSONencoder["batch"] = batchCount;
               batchCount++;
               HTTPClient http;    //Declare object of class HTTPClient
               http.begin(URL);      //Specify request destination
@@ -71,6 +71,7 @@ void loop() {
               Serial.println(httpCode);   //Print HTTP return code
               Serial.println(payload);    //Print request response payload
               http.end();  //Close connection
+              JsonArray& values = JSONencoder.createNestedArray("regsiters");
           }
           else {
           readString += c; //makes the string readString
